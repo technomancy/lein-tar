@@ -1,0 +1,21 @@
+# lein-release
+
+    How far could you take a jar if the jar was in a tar? Possibly as
+    far as Myanmar.
+
+Package your project up as a tarball! 
+
+## Usage
+
+    $ lein release
+
+Creates myproject-1.0.0.tar including everything in pkg/ along with
+all dependencies plus the jar of your project.
+
+## Installation
+
+Add [lein-release "1.0.0-SNAPSHOT"] to your project's :dev-dependencies
+
+## License
+
+Licensed under the EPL; the same license as Clojure.
