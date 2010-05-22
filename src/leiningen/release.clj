@@ -1,12 +1,14 @@
 (ns leiningen.release
   (:use [leiningen.jar :only [jar]]
-        [clojure.contrib.io :only [file to-byte-array]])
+        [clojure.contrib.io :only [file to-byte-array]]
+        [clojure.contrib.string :only [replace-re]])
   (:import [org.apache.tools.tar TarOutputStream TarEntry]
            [java.io FileOutputStream]))
 
 (defn entry-name [release-name f]
-  (str release-name "/" (subs (.getAbsolutePath f)
-                              (inc (count (System/getProperty "user.dir"))))))
+  (let [prefix (re-pattern (str (System/getProperty "user.dir") "/(pkg/)?"))
+        stripped (replace-re prefix "" (.getAbsolutePath f))]
+    (str release-name "/" stripped)))
 
 (defn- add-file [release-name tar f]
   (when-not (.isDirectory f)
