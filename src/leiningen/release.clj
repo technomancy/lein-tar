@@ -28,5 +28,5 @@
       (doseq [j (filter #(re-find #"\.jar$" (.getName %))
                         (.listFiles (file (:library-path project))))]
         (add-file release-name tar j))
-      (add-file release-name tar (file jar-file)))
+      (add-file (str release-name "/lib") tar (file jar-file)))
     (println "Wrote" (.getName tar-file))))
