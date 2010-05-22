@@ -23,7 +23,7 @@
     (.delete tar-file)
     (with-open [tar (TarOutputStream. (FileOutputStream. tar-file))]
       (doseq [p (file-seq (file (:root project)
-                                (or (:pkg-path project) "pkg")))]
+                                "pkg"))]
         (add-file release-name tar p))
       (doseq [j (filter #(re-find #"\.jar$" (.getName %))
                         (.listFiles (file (:library-path project))))]
