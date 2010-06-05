@@ -10,11 +10,13 @@ Package your project up as a tarball!
     $ lein release
 
 Creates myproject-1.0.0.tar including everything in pkg/ along with
-all dependencies plus the jar of your project.
+all dependencies plus the jar of your project. If you are building
+from Hudson, your tarball will contain a build.clj file that shows
+which build produced it.
 
 ## Installation
 
-Add [lein-release "1.0.0-SNAPSHOT"] to your project's :dev-dependencies
+Add [lein-release "1.1.0"] to your project's :dev-dependencies.
 
 ## License
 

@@ -18,7 +18,16 @@
       (.write tar (to-byte-array f))
       (.closeEntry tar))))
 
+(defn- add-build-info [project]
+  (when (System/getenv "BUILD_ID")
+    (let [build-file (file (:root project) "pkg" "build.clj")]
+      (.deleteOnExit build-file)
+      (spit build-file
+            (pr-str {:build-id (System/getenv "BUILD_ID")
+                     :build-tag (System/getenv "BUILD_TAG")})))))
+
 (defn release [project]
+  (add-build-info project)
   (let [release-name (str (:name project) "-" (:version project))
         jar-file (jar project)
         tar-file (file (format "%s/%s.tar" (:root project) release-name))]
