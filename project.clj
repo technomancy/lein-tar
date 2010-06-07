@@ -1,4 +1,4 @@
-(defproject lein-release "1.1.0"
+(defproject lein-release "1.1.1"
   :description "Create a release tarball of your Leiningen projects."
   :dev-dependencies [[swank-clojure "1.2.1"]
                      [org.apache.maven/maven-ant-tasks "2.0.10"]

@@ -18,6 +18,14 @@ which build produced it.
 
 Add [lein-release "1.1.0"] to your project's :dev-dependencies.
 
+## Known Issues
+
+Due to absurd limitations in the Java file API, Unix permissions
+inside the tarball are an approximation[1]. Executable files will be
+given permissions of 0755, while other files will be 0644.
+
+[1] - to phrase it charitably.
+
 ## License
 
 Licensed under the EPL; the same license as Clojure.

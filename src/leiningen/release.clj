@@ -14,6 +14,9 @@
   (when-not (.isDirectory f)
     (let [entry (doto (TarEntry. f)
                   (.setName (entry-name release-name f)))]
+      (when (.canExecute f)
+        ;; No way to expose unix perms? you've got to be kidding me, java!
+        (.setMode entry 0755))
       (.putNextEntry tar entry)
       (.write tar (to-byte-array f))
       (.closeEntry tar))))
@@ -23,8 +26,8 @@
     (let [build-file (file (:root project) "pkg" "build.clj")]
       (.deleteOnExit build-file)
       (spit build-file
-            (pr-str {:build-id (System/getenv "BUILD_ID")
-                     :build-tag (System/getenv "BUILD_TAG")})))))
+            (str {:build-id (System/getenv "BUILD_ID")
+                  :build-tag (System/getenv "BUILD_TAG")} "\n")))))
 
 (defn release [project]
   (add-build-info project)
