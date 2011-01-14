@@ -1,4 +1,4 @@
-(ns leiningen.release
+(ns leiningen.tar
   (:use [leiningen.jar :only [jar]]
         [clojure.java.io :only [copy]])
   (:import [org.apache.tools.tar TarOutputStream TarEntry]
@@ -30,7 +30,7 @@
             (str {:build-id (System/getenv "BUILD_ID")
                   :build-tag (System/getenv "BUILD_TAG")} "\n")))))
 
-(defn release [project]
+(defn tar [project]
   (add-build-info project)
   (let [release-name (str (:name project) "-" (:version project))
         jar-file (jar project)

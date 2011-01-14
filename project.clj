@@ -1,5 +1,4 @@
-(defproject lein-release "1.1.2"
-  :description "Create a release tarball of your Leiningen projects."
-  :dependencies [[ant/ant "1.6.5"]]
+(defproject lein-tar "1.0.0"
+  :description "Create a tarball of your Leiningen projects."
   :eval-in-leiningen true
   :min-lein-version "1.4.0")
