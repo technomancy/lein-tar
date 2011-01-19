@@ -18,7 +18,7 @@ which build produced it.
 
 ## Installation
 
-Add [lein-tar "1.0.0"] to your project's :dev-dependencies.
+Add [lein-tar "1.0.1"] to your project's :dev-dependencies.
 
 ## Known Issues
 
