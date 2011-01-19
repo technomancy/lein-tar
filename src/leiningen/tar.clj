@@ -7,6 +7,7 @@
 (defn entry-name [release-name f]
   (let [prefix (str (System/getProperty "user.dir") File/separator "(pkg)?"
                     File/separator "?")
+        prefix (.replaceAll prefix "\\\\" "\\\\\\\\") ; WINDERS!!!!
         stripped (.replaceAll (.getAbsolutePath f) prefix "")]
     (str release-name File/separator stripped)))
 
