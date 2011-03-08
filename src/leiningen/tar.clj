@@ -24,13 +24,19 @@
       (.write tar (.toByteArray baos))
       (.closeEntry tar))))
 
+(defn build-info [project]
+  (if-let [build-info (:build-info project)]
+    build-info
+    (when (System/getenv "BUILD_ID")
+      {:build-id (System/getenv "BUILD_ID")
+       :build-tag (System/getenv "BUILD_TAG")})))
+
 (defn- add-build-info [project]
-  (when (System/getenv "BUILD_ID")
-    (let [build-file (file (:root project) "pkg" "build.clj")]
+  (let [build-file (file (:root project) "pkg" "build.clj")
+        build-info (build-info project)]
+    (when build-info
       (.deleteOnExit build-file)
-      (spit build-file
-            (str {:build-id (System/getenv "BUILD_ID")
-                  :build-tag (System/getenv "BUILD_TAG")} "\n")))))
+      (spit build-file (str build-info "\n")))))
 
 (defn tar [project]
   (add-build-info project)
