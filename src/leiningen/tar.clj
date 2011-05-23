@@ -1,6 +1,7 @@
 (ns leiningen.tar
   (:use [leiningen.jar :only [jar]]
-        [clojure.java.io :only [copy file]])
+        [clojure.java.io :only [copy file]]
+        [clojure.java.shell :only [sh]])
   (:import [org.apache.tools.tar TarOutputStream TarEntry]
            [java.io File FileOutputStream ByteArrayOutputStream]))
 
@@ -24,12 +25,18 @@
       (.write tar (.toByteArray baos))
       (.closeEntry tar))))
 
+(defn- git-commit [git-dir]
+  (when (.exists git-dir)
+    {:git-commit (.trim (:out (sh "git" "rev-parse" "HEAD")))}))
+
 (defn build-info [project]
   (if-let [build-info (:build-info project)]
     build-info
-    (when (System/getenv "BUILD_ID")
-      {:build-id (System/getenv "BUILD_ID")
-       :build-tag (System/getenv "BUILD_TAG")})))
+    (let [hudson (when (System/getenv "BUILD_ID")
+                   {:build-id (System/getenv "BUILD_ID")
+                    :build-tag (System/getenv "BUILD_TAG")})
+          git (git-commit (file (:root project) ".git"))]
+      (merge hudson git))))
 
 (defn- add-build-info [project]
   (let [build-file (file (:root project) "pkg" "build.clj")
