@@ -1,7 +1,6 @@
 (ns leiningen.tar
   (:use [leiningen.jar :only [jar]]
-        [clojure.java.io :only [copy file]]
-        [clojure.java.shell :only [sh]])
+        [clojure.java.io :only [copy file]])
   (:import [org.apache.tools.tar TarOutputStream TarEntry]
            [java.io File FileOutputStream ByteArrayOutputStream]))
 
@@ -25,9 +24,14 @@
       (.write tar (.toByteArray baos))
       (.closeEntry tar))))
 
-(defn- git-commit [git-dir]
+(defn- git-commit
+  "Reads the value of HEAD and returns a commit SHA1."
+  [git-dir]
   (when (.exists git-dir)
-    {:git-commit (.trim (:out (sh "git" "rev-parse" "HEAD")))}))
+    (let [head (.trim (slurp (str (file git-dir "HEAD"))))]
+      {:git-commit (if-let [ref-path (second (re-find #"ref: (\S+)" head))]
+                     (.trim (slurp (str (file git-dir ref-path))))
+                     head)})))
 
 (defn build-info [project]
   (if-let [build-info (:build-info project)]
