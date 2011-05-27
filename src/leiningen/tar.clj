@@ -43,7 +43,9 @@
       (merge hudson git))))
 
 (defn- add-build-info [project]
-  (let [build-file (file (:root project) "pkg" "build.clj")
+  (let [pkg (file (:root project) "pkg")
+        _ (.mkdir pkg)
+        build-file (file pkg "build.clj")
         build-info (build-info project)]
     (when build-info
       (.deleteOnExit build-file)
