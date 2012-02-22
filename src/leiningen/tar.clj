@@ -5,11 +5,15 @@
            [java.io File FileOutputStream ByteArrayOutputStream]))
 
 (defn entry-name [release-name f]
-  (let [prefix (str (System/getProperty "user.dir") File/separator "(pkg)?"
-                    File/separator "?")
+  (let [prefix (str (System/getProperty "user.dir") File/separator
+                    "(pkg)?" File/separator "?")
         prefix (.replaceAll prefix "\\\\" "\\\\\\\\") ; WINDERS!!!!
         stripped (.replaceAll (.getAbsolutePath f) prefix "")]
-    (str release-name File/separator stripped)))
+    (str release-name File/separator
+         (if (.startsWith (str f) (str (System/getProperty "user.home")
+                                       File/separator ".m2"))
+           (str "lib/target/" (last (.split (str f) "/")))
+           stripped))))
 
 (defn- add-file [release-name tar f]
   (when-not (.isDirectory f)
@@ -52,9 +56,11 @@
       (spit build-file (str build-info "\n")))))
 
 (defn jars-for [project]
-  (if-let [lib (:library-path project)]
-    (filter #(re-find #"\.jar$" (.getName %)) (.listFiles (file lib)))
-    ((ns-resolve (doto 'leiningen.core.classpath require) 'get-classpath))))
+  (filter #(re-find #"\.jar$" (.getName %))
+          (if-let [lib (:library-path project)]
+            (.listFiles (file lib))
+            (map file ((ns-resolve (doto 'leiningen.core.classpath require)
+                                   'get-classpath) project)))))
 
 (defn tar [project]
   (add-build-info project)
