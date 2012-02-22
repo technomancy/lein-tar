@@ -51,6 +51,11 @@
       (.deleteOnExit build-file)
       (spit build-file (str build-info "\n")))))
 
+(defn jars-for [project]
+  (if-let [lib (:library-path project)]
+    (filter #(re-find #"\.jar$" (.getName %)) (.listFiles (file lib)))
+    ((ns-resolve (doto 'leiningen.core.classpath require) 'get-classpath))))
+
 (defn tar [project]
   (add-build-info project)
   (let [release-name (str (:name project) "-" (:version project))
@@ -60,8 +65,7 @@
     (with-open [tar (TarOutputStream. (FileOutputStream. tar-file))]
       (doseq [p (file-seq (file (:root project) "pkg"))]
         (add-file release-name tar p))
-      (doseq [j (filter #(re-find #"\.jar$" (.getName %))
-                        (.listFiles (file (:library-path project))))]
+      (doseq [j (jars-for project)]
         (add-file release-name tar j))
       (add-file (str release-name File/separator "lib") tar (file jar-file)))
     (println "Wrote" (.getName tar-file))))
