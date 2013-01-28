@@ -4,15 +4,22 @@
   (:import [org.apache.tools.tar TarOutputStream TarEntry]
            [java.io File FileOutputStream ByteArrayOutputStream]))
 
+(defn unix-path
+  "Converts a File or String into a unix-like path"
+  [f]
+  (-> (if (instance? java.io.File f)
+        (.getAbsolutePath f)
+        f)
+      (.replaceAll "\\\\" "/"))) ; WINDERS!!!!
+
 (defn entry-name [release-name f]
-  (let [prefix (str (System/getProperty "user.dir") File/separator
-                    "(pkg)?" File/separator "?")
-        prefix (.replaceAll prefix "\\\\" "\\\\\\\\") ; WINDERS!!!!
-        stripped (.replaceAll (.getAbsolutePath f) prefix "")]
-    (str release-name File/separator
-         (if (.startsWith (str f) (str (System/getProperty "user.home")
-                                       File/separator ".m2"))
-           (str "lib/target/" (last (.split (str f) "/")))
+  (let [f (unix-path f)
+        prefix (unix-path (str (System/getProperty "user.dir") "/(pkg)?/?"))
+        stripped (.replaceAll f prefix "")]
+    (str release-name "/"
+         (if (.startsWith f (unix-path (str (System/getProperty "user.home")
+                                            "/.m2")))
+           (str "lib/target/" (last (.split f "/")))
            stripped))))
 
 (defn- add-file [release-name tar f]
