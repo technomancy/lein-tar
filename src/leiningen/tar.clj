@@ -23,17 +23,15 @@
            stripped))))
 
 (defn- add-file [release-name tar f]
-  (when-not (.isDirectory f)
-    (let [entry (doto (TarEntry. f)
-                  (.setName (entry-name release-name f)))
-          baos (ByteArrayOutputStream.)]
-      (when (.canExecute f)
-        ;; No way to expose unix perms? you've got to be kidding me, java!
-        (.setMode entry 0755))
-      (copy f baos)
-      (.putNextEntry tar entry)
-      (.write tar (.toByteArray baos))
-      (.closeEntry tar))))
+  (let [entry (doto (TarEntry. f)
+                (.setName (entry-name release-name f)))]
+    (when (.canExecute f)
+      ;; No way to expose unix perms? you've got to be kidding me, java!
+      (.setMode entry 0755))
+    (.putNextEntry tar entry)
+    (when-not (.isDirectory f)
+      (copy f tar))
+    (.closeEntry tar)))
 
 (defn- git-commit
   "Reads the value of HEAD and returns a commit SHA1."
@@ -79,7 +77,9 @@
       (.setLongFileMode tar TarOutputStream/LONGFILE_GNU)
       (doseq [p (file-seq (file (:root project) "pkg"))]
         (add-file release-name tar p))
+      (doseq [:let [j (file jar-file)]
+              f [(.getParentFile j) j]]
+        (add-file (str release-name "/lib") tar f))
       (doseq [j (jars-for project)]
-        (add-file release-name tar j))
-      (add-file (str release-name File/separator "lib") tar (file jar-file)))
+        (add-file release-name tar j)))
     (println "Wrote" (.getName tar-file))))
