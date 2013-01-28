@@ -4,29 +4,34 @@
   (:import [org.apache.tools.tar TarOutputStream TarEntry]
            [java.io File FileOutputStream ByteArrayOutputStream]))
 
+(defn unix-path
+  "Converts a File or String into a unix-like path"
+  [f]
+  (-> (if (instance? java.io.File f)
+        (.getAbsolutePath f)
+        f)
+      (.replaceAll "\\\\" "/"))) ; WINDERS!!!!
+
 (defn entry-name [release-name f]
-  (let [prefix (str (System/getProperty "user.dir") File/separator
-                    "(pkg)?" File/separator "?")
-        prefix (.replaceAll prefix "\\\\" "\\\\\\\\") ; WINDERS!!!!
-        stripped (.replaceAll (.getAbsolutePath f) prefix "")]
-    (str release-name File/separator
-         (if (.startsWith (str f) (str (System/getProperty "user.home")
-                                       File/separator ".m2"))
-           (str "lib/target/" (last (.split (str f) "/")))
+  (let [f (unix-path f)
+        prefix (unix-path (str (System/getProperty "user.dir") "/(pkg)?/?"))
+        stripped (.replaceAll f prefix "")]
+    (str release-name "/"
+         (if (.startsWith f (unix-path (str (System/getProperty "user.home")
+                                            "/.m2")))
+           (str "lib/target/" (last (.split f "/")))
            stripped))))
 
 (defn- add-file [release-name tar f]
-  (when-not (.isDirectory f)
-    (let [entry (doto (TarEntry. f)
-                  (.setName (entry-name release-name f)))
-          baos (ByteArrayOutputStream.)]
-      (when (.canExecute f)
-        ;; No way to expose unix perms? you've got to be kidding me, java!
-        (.setMode entry 0755))
-      (copy f baos)
-      (.putNextEntry tar entry)
-      (.write tar (.toByteArray baos))
-      (.closeEntry tar))))
+  (let [entry (doto (TarEntry. f)
+                (.setName (entry-name release-name f)))]
+    (when (.canExecute f)
+      ;; No way to expose unix perms? you've got to be kidding me, java!
+      (.setMode entry 0755))
+    (.putNextEntry tar entry)
+    (when-not (.isDirectory f)
+      (copy f tar))
+    (.closeEntry tar)))
 
 (defn- git-commit
   "Reads the value of HEAD and returns a commit SHA1."
@@ -69,9 +74,12 @@
         tar-file (file (:root project) (format "%s.tar" release-name))]
     (.delete tar-file)
     (with-open [tar (TarOutputStream. (FileOutputStream. tar-file))]
+      (.setLongFileMode tar TarOutputStream/LONGFILE_GNU)
       (doseq [p (file-seq (file (:root project) "pkg"))]
         (add-file release-name tar p))
+      (doseq [:let [j (file jar-file)]
+              f [(.getParentFile j) j]]
+        (add-file (str release-name "/lib") tar f))
       (doseq [j (jars-for project)]
-        (add-file release-name tar j))
-      (add-file (str release-name File/separator "lib") tar (file jar-file)))
+        (add-file release-name tar j)))
     (println "Wrote" (.getName tar-file))))
