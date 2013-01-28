@@ -69,6 +69,7 @@
         tar-file (file (:root project) (format "%s.tar" release-name))]
     (.delete tar-file)
     (with-open [tar (TarOutputStream. (FileOutputStream. tar-file))]
+      (.setLongFileMode tar TarOutputStream/LONGFILE_GNU)
       (doseq [p (file-seq (file (:root project) "pkg"))]
         (add-file release-name tar p))
       (doseq [j (jars-for project)]
