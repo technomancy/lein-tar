@@ -1,5 +1,6 @@
 (ns leiningen.tar
   (:use [leiningen.jar :only [jar]]
+        [leiningen.uberjar :only [uberjar]]
         [clojure.java.io :only [copy file]])
   (:import [org.apache.tools.tar TarOutputStream TarEntry]
            [java.io File FileOutputStream ByteArrayOutputStream]))
@@ -67,19 +68,33 @@
             (map file ((ns-resolve (doto 'leiningen.core.classpath require)
                                    'get-classpath) project)))))
 
+(defn release-name [project]
+  (str (:name project) "-" (:version project)))
+
+(defn add-jars [project tar]
+  (let [jar-file (jar project)]
+    (doseq [:let [j (file jar-file)]
+            f [(.getParentFile j) j]]
+      (add-file (str (release-name project) "/lib") tar f))
+    (doseq [j (jars-for project)]
+      (add-file (release-name project) tar j))))
+
+(defn add-uberjar [project tar]
+  (let [uberjar-file (uberjar project)]
+    (doseq [:let [j (file uberjar-file)]
+            f [(.getParentFile j) j]]
+      (add-file (str (release-name project) "/lib") tar f))))
+
 (defn tar [project]
   (add-build-info project)
-  (let [release-name (str (:name project) "-" (:version project))
-        jar-file (jar project)
+  (let [release-name (release-name project)
         tar-file (file (:root project) (format "%s.tar" release-name))]
     (.delete tar-file)
     (with-open [tar (TarOutputStream. (FileOutputStream. tar-file))]
       (.setLongFileMode tar TarOutputStream/LONGFILE_GNU)
       (doseq [p (file-seq (file (:root project) "pkg"))]
         (add-file release-name tar p))
-      (doseq [:let [j (file jar-file)]
-              f [(.getParentFile j) j]]
-        (add-file (str release-name "/lib") tar f))
-      (doseq [j (jars-for project)]
-        (add-file release-name tar j)))
-    (println "Wrote" (.getName tar-file))))
+      (if (get-in project [:tar :uberjar])
+        (add-uberjar project tar)
+        (add-jars project tar))
+    (println "Wrote" (.getName tar-file)))))

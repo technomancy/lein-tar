@@ -3,7 +3,7 @@
     How far could you take a jar if the jar was in a tar? Possibly as
     far as Myanmar.
 
-Package your project up as a tarball! 
+Package your project up as a tarball!
 
 Formerly known as lein-release.
 
@@ -28,6 +28,9 @@ all dependencies plus the jar of your project. If you are building
 from Hudson, your tarball will contain a build.clj file that shows
 which build produced it.
 
+## Uberjar
+
+Add `:tar {:uberjar true}` to your project.clj.
 
 ## Known Issues
 
