@@ -1,4 +1,4 @@
-(defproject lein-tar "1.1.1"
+(defproject lein-tar "1.1.2"
   :description "Create a tarball of your Leiningen projects."
   :eval-in-leiningen true
   :dependencies [[org.apache.ant/ant "1.8.2"]]
