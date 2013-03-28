@@ -71,11 +71,14 @@
 (defn release-name [project]
   (str (:name project) "-" (:version project)))
 
+;; jar task changed in Leiningen 2.1 to return map of classifier/file
+(defn- jar-extension [files]
+  (second (first (filter #(= [:extension "jar"] (key %)) files))))
+
 (defn add-jars [project tar]
-  (let [jar-file (jar project)]
-    (doseq [:let [j (file jar-file)]
-            f [(.getParentFile j) j]]
-      (add-file (str (release-name project) "/lib") tar f))
+  (let [j (jar project)
+        jar-file (if (map? j) (jar-extension j) j)]
+    (add-file (str (release-name project) "/lib") tar (file jar-file))
     (doseq [j (jars-for project)]
       (add-file (release-name project) tar j))))
 
