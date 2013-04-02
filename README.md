@@ -12,11 +12,11 @@ Formerly known as lein-release.
 
 ### With Leiningen 2
 
-Add [lein-tar "1.1.0"] to your project's `:plugins`.
+Add [lein-tar "1.1.2"] to your project's `:plugins`.
 
 ### With Leiningen 1
 
-Add [lein-tar "1.1.0"] to your project's `:dev-dependencies`.
+Add [lein-tar "1.1.2"] to your project's `:dev-dependencies`.
 
 
 ## Usage
