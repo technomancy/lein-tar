@@ -1,7 +1,7 @@
 # What is lein-tar
 
     How far could you take a jar if the jar was in a tar? Possibly as
-    far as Myanmar.
+    far as Myanmar. Or maybe Zanzibar, if you had a car.
 
 Package your project up as a tarball!
 
@@ -12,7 +12,7 @@ Formerly known as lein-release.
 
 ### With Leiningen 2
 
-Add [lein-tar "1.1.2"] to your project's `:plugins`.
+Add [lein-tar "2.0.0"] to your project's `:plugins`.
 
 ### With Leiningen 1
 
@@ -24,9 +24,9 @@ Add [lein-tar "1.1.2"] to your project's `:dev-dependencies`.
     $ lein tar
 
 Creates myproject-1.0.0.tar including everything in pkg/ along with
-all dependencies plus the jar of your project. If you are building
-from Hudson, your tarball will contain a build.clj file that shows
-which build produced it.
+the default dependencies plus the jar of your project. If you are
+building from Hudson, your tarball will contain a build.clj file that
+shows which build produced it.
 
 ## Uberjar
 
