@@ -1,5 +1,7 @@
 (ns leiningen.tar
   (:require [clojure.java.io :as io]
+            [leiningen.core.classpath :as classpath]
+            [leiningen.core.project :as project]
             [leiningen.jar :as jar]
             [leiningen.uberjar :as uberjar])
   (:import (java.io ByteArrayOutputStream File FileOutputStream)
@@ -62,9 +64,13 @@
       (spit build-file (str build-info "\n")))))
 
 (defn jars-for [project]
-  (filter #(re-find #"\.jar$" (.getName %))
-          (map file ((ns-resolve (doto 'leiningen.core.classpath require)
-                                 'get-classpath) project))))
+  ;; see similar let in leiningen.uberjar/uberjar
+  (let [whitelisted (select-keys project jar/whitelist-keys)
+        project (merge (project/unmerge-profiles project [:default])
+                       whitelisted)
+        deps (->> (classpath/resolve-dependencies :dependencies project)
+                  (filter #(.endsWith (.getName %) ".jar")))]
+    deps))
 
 (defn release-name [project]
   (str (:name project) "-" (:version project)))
