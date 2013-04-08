@@ -100,4 +100,4 @@
       (if (get-in project [:tar :uberjar])
         (add-uberjar project tar)
         (add-jars project tar))
-    (println "Wrote" (.getName tar-file)))))
+      (println "Wrote" (.getName tar-file)))))
