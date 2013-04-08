@@ -63,10 +63,8 @@
 
 (defn jars-for [project]
   (filter #(re-find #"\.jar$" (.getName %))
-          (if-let [lib (:library-path project)]
-            (.listFiles (file lib))
-            (map file ((ns-resolve (doto 'leiningen.core.classpath require)
-                                   'get-classpath) project)))))
+          (map file ((ns-resolve (doto 'leiningen.core.classpath require)
+                                 'get-classpath) project))))
 
 (defn release-name [project]
   (str (:name project) "-" (:version project)))
