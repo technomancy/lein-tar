@@ -5,6 +5,7 @@
             [leiningen.jar :as jar]
             [leiningen.uberjar :as uberjar])
   (:import (java.io ByteArrayOutputStream File FileOutputStream)
+           (java.util.zip GZIPOutputStream)
            (org.apache.tools.tar TarEntry TarOutputStream)))
 
 (defn unix-path
@@ -94,14 +95,20 @@
 
 (defn tar [project]
   (add-build-info project)
-  (let [release-name (release-name project)
-        tar-file (io/file (:root project) (format "%s.tar" release-name))]
+  (let [options (:tar project)
+        fmt (or (keyword (:format options)) :tar)
+        release-name (release-name project)
+        tar-file (io/file (:root project) (format "%s.%s" release-name (name fmt))) ]
+
     (.delete tar-file)
-    (with-open [tar (TarOutputStream. (FileOutputStream. tar-file))]
+    (with-open [tar (TarOutputStream. (case fmt
+                                        :tgz (GZIPOutputStream.
+                                              (FileOutputStream. tar-file))
+                                        :tar (FileOutputStream. tar-file)))]
       (.setLongFileMode tar TarOutputStream/LONGFILE_GNU)
       (doseq [p (file-seq (io/file (:root project) "pkg"))]
         (add-file release-name tar p))
-      (if (get-in project [:tar :uberjar])
+      (if (:uberjar options)
         (add-uberjar project tar)
         (add-jars project tar))
       (println "Wrote" (.getName tar-file)))))
