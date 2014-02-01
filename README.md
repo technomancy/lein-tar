@@ -23,7 +23,7 @@ Add [lein-tar "1.1.2"] to your project's `:dev-dependencies`.
 
     $ lein tar
 
-Creates myproject-1.0.0.tar including everything in pkg/ along with
+Creates myproject-1.0.0.tar including everything in `pkg/` along with
 the default dependencies plus the jar of your project. If you are
 building from Hudson, your tarball will contain a build.clj file that
 shows which build produced it.
@@ -31,6 +31,10 @@ shows which build produced it.
 ## Uberjar
 
 Add `:tar {:uberjar true}` to your project.clj.
+
+## Output format
+
+Use option `:format` to specify the desired output format: either a `tar` (default) or a `tgz` (tar + gzip). Example: `:tar {:format :tgz}`.
 
 ## Known Issues
 
