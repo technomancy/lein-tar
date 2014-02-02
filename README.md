@@ -36,6 +36,15 @@ Add `:tar {:uberjar true}` to your project.clj.
 
 Use option `:format` to specify the desired output format: either a `tar` (default) or a `tgz` (tar + gzip). Example: `:tar {:format :tgz}`.
 
+
+## Breaking changes since version 2.0.0
+
+Starting with version 3.0.0, we introduced the following breaking changes:
+
+* The plugin adds the `.jar` files to the resulting archive under `lib/` instead of `lib/target`
+* By default, the plugin now generates the resulting archive in the projects' target directory (that is, the `:target-path` of the project), instead of the project's root. You can change this with the new option `:output-dir`.
+
+
 ## Known Issues
 
 Due to absurd limitations in the Java file API, Unix permissions

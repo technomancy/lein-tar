@@ -18,12 +18,12 @@
 
 (defn entry-name [release-name f]
   (let [f (unix-path f)
-        prefix (unix-path (str (System/getProperty "user.dir") "/(pkg)?/?"))
+        prefix (unix-path (str (System/getProperty "user.dir") "/(pkg|target)?/?"))
         stripped (.replaceAll f prefix "")]
     (str release-name "/"
          (if (.startsWith f (unix-path (str (System/getProperty "user.home")
                                             "/.m2")))
-           (str "lib/target/" (last (.split f "/")))
+           (str "lib/" (last (.split f "/")))
            stripped))))
 
 (defn- add-file [release-name tar f]
@@ -97,10 +97,12 @@
   (add-build-info project)
   (let [options (:tar project)
         fmt (or (keyword (:format options)) :tar)
+        output-dir (or (:output-dir options) (:target-path project))
         release-name (release-name project)
-        tar-file (io/file (:root project) (format "%s.%s" release-name (name fmt))) ]
+        tar-file (io/file output-dir (format "%s.%s" release-name (name fmt))) ]
 
     (.delete tar-file)
+    (.mkdirs (.getParentFile tar-file))
     (with-open [tar (TarOutputStream. (case fmt
                                         :tgz (GZIPOutputStream.
                                               (FileOutputStream. tar-file))
