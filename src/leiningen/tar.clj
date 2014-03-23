@@ -1,5 +1,6 @@
 (ns leiningen.tar
   (:require [clojure.java.io :as io]
+            [clojure.string :as string]
             [leiningen.core.classpath :as classpath]
             [leiningen.core.project :as project]
             [leiningen.jar :as jar]
@@ -93,20 +94,27 @@
             f [(.getParentFile j) j]]
       (add-file (str (release-name project) "/lib") tar f))))
 
+(defn- file-suffix [fmt]
+  "Take the name of given keyword fmt and replace every dash with a dot, so :tar-gz gets .tar.gz"
+  (string/replace (name fmt) #"-" "."))
+
+(defn- out-stream [fmt tar-file]
+  (let [file-stream (FileOutputStream. tar-file)]
+    (case fmt
+      (:tgz :tar-gz) (GZIPOutputStream. file-stream)
+      file-stream)))
+
 (defn tar [project]
   (add-build-info project)
   (let [options (:tar project)
         fmt (or (keyword (:format options)) :tar)
         output-dir (or (:output-dir options) (:target-path project))
         release-name (release-name project)
-        tar-file (io/file output-dir (format "%s.%s" release-name (name fmt))) ]
+        tar-file (io/file output-dir (format "%s.%s" release-name (file-suffix fmt))) ]
 
     (.delete tar-file)
     (.mkdirs (.getParentFile tar-file))
-    (with-open [tar (TarOutputStream. (case fmt
-                                        :tgz (GZIPOutputStream.
-                                              (FileOutputStream. tar-file))
-                                        :tar (FileOutputStream. tar-file)))]
+    (with-open [tar (TarOutputStream. (out-stream fmt tar-file))]
       (.setLongFileMode tar TarOutputStream/LONGFILE_GNU)
       (doseq [p (file-seq (io/file (:root project) "pkg"))]
         (add-file release-name tar p))

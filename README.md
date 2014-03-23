@@ -34,7 +34,7 @@ Add `:tar {:uberjar true}` to your project.clj.
 
 ## Output format
 
-Use option `:format` to specify the desired output format: either a `tar` (default) or a `tgz` (tar + gzip). Example: `:tar {:format :tgz}`.
+Use option `:format` to specify the desired output format: either a `tar` (default) or a `tgz`/`tar-gz` (tar + gzip). Example: `:tar {:format :tgz}`.
 
 
 ## Breaking changes since version 2.0.0
