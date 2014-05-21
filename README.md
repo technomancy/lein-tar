@@ -36,6 +36,14 @@ Add `:tar {:uberjar true}` to your project.clj.
 
 Use option `:format` to specify the desired output format: either a `tar` (default) or a `tgz`/`tar-gz` (tar + gzip). Example: `:tar {:format :tgz}`.
 
+## Custom name
+
+By default the file name will be something like myproject-1.0.0.tar
+(or whatever extension `:format` uses).  To change that, the `-n` or
+`--name` argument is supported.  The following will create a tar file
+called `custom-name.tar`:
+
+    $ lein tar --name custom-name
 
 ## Breaking changes since version 2.0.0
 
