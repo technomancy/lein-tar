@@ -27,9 +27,9 @@
            (str "lib/" (last (.split f "/")))
            stripped))))
 
-(defn- add-file [release-name tar f]
+(defn- add-file [dir-name tar f]
   (let [entry (doto (TarEntry. f)
-                (.setName (entry-name release-name f)))]
+                (.setName (entry-name dir-name f)))]
     (when (.canExecute f)
       ;; No way to expose unix perms? you've got to be kidding me, java!
       (.setMode entry 0755))
@@ -81,21 +81,23 @@
 (defn- jar-extension [files]
   (second (first (filter #(= [:extension "jar"] (key %)) files))))
 
-(defn add-jars [project tar]
+(defn add-jars [project dir-name tar]
   (let [j (jar/jar project)
         jar-file (if (map? j) (jar-extension j) j)]
-    (add-file (str (release-name project) "/lib") tar (io/file jar-file))
+    (add-file (str dir-name "/lib") tar (io/file jar-file))
     (doseq [j (jars-for project)]
-      (add-file (release-name project) tar j))))
+      (add-file dir-name tar j))))
 
-(defn add-uberjar [project tar]
+(defn add-uberjar [project dir-name tar]
   (let [uberjar-file (uberjar/uberjar project)]
     (doseq [:let [j (io/file uberjar-file)]
             f [(.getParentFile j) j]]
-      (add-file (str (release-name project) "/lib") tar f))))
+      (add-file (str dir-name "/lib") tar f))))
 
-(defn- file-suffix [fmt]
-  "Take the name of given keyword fmt and replace every dash with a dot, so :tar-gz gets .tar.gz"
+(defn- file-suffix
+  "Take the name of given keyword fmt and replace every dash with a
+  dot, so :tar-gz gets .tar.gz"
+  [fmt]
   (string/replace (name fmt) #"-" "."))
 
 (defn- out-stream [fmt tar-file]
@@ -104,21 +106,33 @@
       (:tgz :tar-gz) (GZIPOutputStream. file-stream)
       file-stream)))
 
-(defn tar [project]
+(defn- tar-name
+  "Produce the name of the tar file based on the project or passed in
+  arguments.  Falls back to the release-name in the case of no name
+  passed in or inavlid arguments."
+  [project [name-arg-key name-arg-val]]
+  ;; seems overkill to pull in a cli parsing lib for just this...
+  (if (and (or (= "-n" name-arg-key)
+               (= "--name" name-arg-key))
+           (not (empty? name-arg-val)))
+    name-arg-val
+    (release-name project)))
+
+(defn tar [project & args]
   (add-build-info project)
   (let [options (:tar project)
         fmt (or (keyword (:format options)) :tar)
         output-dir (or (:output-dir options) (:target-path project))
-        release-name (release-name project)
-        tar-file (io/file output-dir (format "%s.%s" release-name (file-suffix fmt))) ]
-
+        tar-name (tar-name project args)
+        tar-file (io/file output-dir
+                          (format "%s.%s" tar-name (file-suffix fmt)))]
     (.delete tar-file)
     (.mkdirs (.getParentFile tar-file))
     (with-open [tar (TarOutputStream. (out-stream fmt tar-file))]
       (.setLongFileMode tar TarOutputStream/LONGFILE_GNU)
       (doseq [p (file-seq (io/file (:root project) "pkg"))]
-        (add-file release-name tar p))
+        (add-file tar-name tar p))
       (if (:uberjar options)
-        (add-uberjar project tar)
-        (add-jars project tar))
+        (add-uberjar project tar-name tar)
+        (add-jars project tar-name tar))
       (println "Wrote" (.getName tar-file)))))
