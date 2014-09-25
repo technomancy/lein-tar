@@ -12,7 +12,7 @@ Formerly known as lein-release.
 
 ### With Leiningen 2
 
-Add [lein-tar "2.0.0"] to your project's `:plugins`.
+Add [lein-tar "3.2.0"] to your project's `:plugins`.
 
 ### With Leiningen 1
 
