@@ -141,4 +141,4 @@
       (if (:uberjar options)
         (add-uberjar project tar-name tar options)
         (add-jars project tar-name tar options))
-      (println "Wrote" (.getName tar-file)))))
+      (println "Wrote" (.getAbsolutePath tar-file)))))
