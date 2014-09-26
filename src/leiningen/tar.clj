@@ -27,9 +27,15 @@
            (str "lib/" (last (.split f "/")))
            stripped))))
 
-(defn- add-file [dir-name tar f]
-  (let [entry (doto (TarEntry. f)
-                (.setName (entry-name dir-name f)))]
+(defn- add-file [dir-name tar f opts]
+  (let [{:keys [strip-leading-path]
+         :or {strip-leading-path false}} opts
+         name (entry-name dir-name f)
+         name (if-not strip-leading-path
+                name
+                (string/join "/" (rest (.split name "/"))))
+         entry (doto (TarEntry. f)
+                 (.setName name))]
     (when (.canExecute f)
       ;; No way to expose unix perms? you've got to be kidding me, java!
       (.setMode entry 0755))
@@ -81,18 +87,18 @@
 (defn- jar-extension [files]
   (second (first (filter #(= [:extension "jar"] (key %)) files))))
 
-(defn add-jars [project dir-name tar]
+(defn add-jars [project dir-name tar opts]
   (let [j (jar/jar project)
         jar-file (if (map? j) (jar-extension j) j)]
-    (add-file (str dir-name "/lib") tar (io/file jar-file))
+    (add-file (str dir-name "/lib") tar (io/file jar-file) opts)
     (doseq [j (jars-for project)]
-      (add-file dir-name tar j))))
+      (add-file dir-name tar j opts))))
 
-(defn add-uberjar [project dir-name tar]
+(defn add-uberjar [project dir-name tar opts]
   (let [uberjar-file (uberjar/uberjar project)]
     (doseq [:let [j (io/file uberjar-file)]
             f [(.getParentFile j) j]]
-      (add-file (str dir-name "/lib") tar f))))
+      (add-file (str dir-name "/lib") tar f opts))))
 
 (defn- file-suffix
   "Take the name of given keyword fmt and replace every dash with a
@@ -131,8 +137,8 @@
     (with-open [tar (TarOutputStream. (out-stream fmt tar-file))]
       (.setLongFileMode tar TarOutputStream/LONGFILE_GNU)
       (doseq [p (file-seq (io/file (:root project) "pkg"))]
-        (add-file tar-name tar p))
+        (add-file tar-name tar p options))
       (if (:uberjar options)
-        (add-uberjar project tar-name tar)
-        (add-jars project tar-name tar))
+        (add-uberjar project tar-name tar options)
+        (add-jars project tar-name tar options))
       (println "Wrote" (.getName tar-file)))))
