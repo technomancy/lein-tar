@@ -17,26 +17,32 @@
         f)
       (.replaceAll "\\\\" "/"))) ; WINDERS!!!!
 
-(defn entry-name [release-name f]
+(defn entry-name [path f]
   (let [f (unix-path f)
+        ;; strip files inside the project to the just logical components
         prefix (unix-path (str (System/getProperty "user.dir") "/(pkg|target)?/?"))
-        stripped (.replaceAll f prefix "")]
-    (str release-name "/"
-         (if (.startsWith f (unix-path (str (System/getProperty "user.home")
-                                            "/.m2")))
-           (str (last (.split f "/")))
-           stripped))))
+        f (.replaceAll f prefix "")
+        ;; strips files from m2 to just the filename
+        m2 (unix-path (str (System/getProperty "user.home") "/.m2"))
+        f (if (.startsWith f m2)
+            (str (last (.split f "/")))
+            f)]
+    (-> (str path "/" f)
+        ;; nuke leading slashes
+        (.replaceAll "^\\/" ""))))
 
 (defn- add-file [tar path f]
-  (let [entry (doto (TarEntry. f)
-                (.setName (entry-name path f)))]
-    (when (.canExecute f)
-      ;; No way to expose unix perms? you've got to be kidding me, java!
-      (.setMode entry 0755))
-    (.putNextEntry tar entry)
-    (when-not (.isDirectory f)
-      (io/copy f tar))
-    (.closeEntry tar)))
+  (let [n (entry-name path f)
+        entry (doto (TarEntry. f)
+                (.setName n))]
+    (when-not (empty? n) ;; skip entries with no name
+      (when (.canExecute f)
+        ;; No way to expose unix perms? you've got to be kidding me, java!
+        (.setMode entry 0755))
+      (.putNextEntry tar entry)
+      (when-not (.isDirectory f)
+        (io/copy f tar))
+      (.closeEntry tar))))
 
 (defn- add-directory [tar path]
   ;; minor hack, we use the cwd as the model for any plain directories
@@ -137,6 +143,7 @@
         fmt (or (keyword (:format options)) :tar)
         output-dir (or (:output-dir options) (:target-path project))
         tar-name (tar-name project args)
+        tar-path (or (:leading-path options) tar-name)
         ;; jar/jar is an implicit project clean, so do this early
         jar (generate-jar project)
         tar-file (io/file output-dir
@@ -147,7 +154,7 @@
       (.setLongFileMode tar TarOutputStream/LONGFILE_GNU)
       ;; and add everything from pkg
       (doseq [p (file-seq (io/file (:root project) "pkg"))]
-        (add-file tar tar-name p))
+        (add-file tar tar-path p))
       ;; and whatever jars should be included
-      (add-jars project tar tar-name jar)
+      (add-jars project tar tar-path jar)
       (println "Wrote" (.getName tar-file)))))
