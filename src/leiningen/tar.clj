@@ -39,7 +39,10 @@
     (.closeEntry tar)))
 
 (defn- add-directory [tar path]
-  (let [entry (doto (TarEntry. path))]
+  ;; minor hack, we use the cwd as the model for any plain directories
+  ;; that we're adding
+  (let [entry (doto (TarEntry. (io/file (System/getProperty "user.dir")))
+                (.setName path))]
     (.putNextEntry tar entry)
     (.closeEntry tar)))
 
