@@ -27,7 +27,7 @@
            (str (last (.split f "/")))
            stripped))))
 
-(defn- add-file [dir-name tar f]
+(defn- add-file [tar dir-name f]
   (let [entry (doto (TarEntry. f)
                 (.setName (entry-name dir-name f)))]
     (when (.canExecute f)
@@ -38,7 +38,7 @@
       (io/copy f tar))
     (.closeEntry tar)))
 
-(defn- add-directory [dir-name tar]
+(defn- add-directory [tar dir-name]
   (let [entry (doto (TarEntry. dir-name))]
     (.putNextEntry tar entry)
     (.closeEntry tar)))
@@ -98,11 +98,11 @@
 
 (defn add-jars [project tar dir-name jar]
   (let [options (:tar project)]
-    (add-directory (str dir-name "/lib") tar)
-    (add-file (str dir-name "/lib") tar (io/file jar))
+    (add-directory tar (str dir-name "/lib"))
+    (add-file tar (str dir-name "/lib") (io/file jar))
     (if-not (:uberjar options)
       (doseq [j (jars-for project)]
-        (add-file (str dir-name "/lib") tar j)))))
+        (add-file tar (str dir-name "/lib") j)))))
 
 (defn- file-suffix
   "Take the name of given keyword fmt and replace every dash with a
@@ -144,7 +144,7 @@
       (.setLongFileMode tar TarOutputStream/LONGFILE_GNU)
       ;; and add everything from pkg
       (doseq [p (file-seq (io/file (:root project) "pkg"))]
-        (add-file tar-name tar p))
+        (add-file tar tar-name p))
       ;; and whatever jars should be included
       (add-jars project tar tar-name jar)
       (println "Wrote" (.getName tar-file)))))
