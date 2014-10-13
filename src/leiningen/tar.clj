@@ -27,9 +27,9 @@
            (str (last (.split f "/")))
            stripped))))
 
-(defn- add-file [tar dir-name f]
+(defn- add-file [tar path f]
   (let [entry (doto (TarEntry. f)
-                (.setName (entry-name dir-name f)))]
+                (.setName (entry-name path f)))]
     (when (.canExecute f)
       ;; No way to expose unix perms? you've got to be kidding me, java!
       (.setMode entry 0755))
@@ -38,8 +38,8 @@
       (io/copy f tar))
     (.closeEntry tar)))
 
-(defn- add-directory [tar dir-name]
-  (let [entry (doto (TarEntry. dir-name))]
+(defn- add-directory [tar path]
+  (let [entry (doto (TarEntry. path))]
     (.putNextEntry tar entry)
     (.closeEntry tar)))
 
@@ -96,13 +96,13 @@
       (uberjar/uberjar project)
       (find-jar (jar/jar project)))))
 
-(defn add-jars [project tar dir-name jar]
+(defn add-jars [project tar path jar]
   (let [options (:tar project)]
-    (add-directory tar (str dir-name "/lib"))
-    (add-file tar (str dir-name "/lib") (io/file jar))
+    (add-directory tar (str path "/lib"))
+    (add-file tar (str path "/lib") (io/file jar))
     (if-not (:uberjar options)
       (doseq [j (jars-for project)]
-        (add-file tar (str dir-name "/lib") j)))))
+        (add-file tar (str path "/lib") j)))))
 
 (defn- file-suffix
   "Take the name of given keyword fmt and replace every dash with a
