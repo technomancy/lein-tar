@@ -24,7 +24,7 @@
     (str release-name "/"
          (if (.startsWith f (unix-path (str (System/getProperty "user.home")
                                             "/.m2")))
-           (str "lib/" (last (.split f "/")))
+           (str (last (.split f "/")))
            stripped))))
 
 (defn- add-file [dir-name tar f]
@@ -36,6 +36,11 @@
     (.putNextEntry tar entry)
     (when-not (.isDirectory f)
       (io/copy f tar))
+    (.closeEntry tar)))
+
+(defn- add-directory [dir-name tar]
+  (let [entry (doto (TarEntry. dir-name))]
+    (.putNextEntry tar entry)
     (.closeEntry tar)))
 
 (defn- git-commit
@@ -77,22 +82,27 @@
 (defn release-name [project]
   (str (:name project) "-" (:version project)))
 
-;; jar task changed in Leiningen 2.1 to return map of classifier/file
-(defn- jar-extension [files]
-  (second (first (filter #(= [:extension "jar"] (key %)) files))))
+(defn- find-jar [files]
+  (if (map? files)
+    ;; the jar task changed in Leiningen 2.1 to return map of
+    ;; classifier/file so find the jar in the map
+    (second (first (filter #(= [:extension "jar"] (key %)) files)))
+    ;; ah, files *is* the jar
+    files))
 
-(defn add-jars [project dir-name tar]
-  (let [j (jar/jar project)
-        jar-file (if (map? j) (jar-extension j) j)]
-    (add-file (str dir-name "/lib") tar (io/file jar-file))
-    (doseq [j (jars-for project)]
-      (add-file dir-name tar j))))
+(defn generate-jar [project]
+  (let [options (:tar project)]
+    (if (:uberjar options)
+      (uberjar/uberjar project)
+      (find-jar (jar/jar project)))))
 
-(defn add-uberjar [project dir-name tar]
-  (let [uberjar-file (uberjar/uberjar project)]
-    (doseq [:let [j (io/file uberjar-file)]
-            f [(.getParentFile j) j]]
-      (add-file (str dir-name "/lib") tar f))))
+(defn add-jars [project tar dir-name jar]
+  (let [options (:tar project)]
+    (add-directory (str dir-name "/lib") tar)
+    (add-file (str dir-name "/lib") tar (io/file jar))
+    (if-not (:uberjar options)
+      (doseq [j (jars-for project)]
+        (add-file (str dir-name "/lib") tar j)))))
 
 (defn- file-suffix
   "Take the name of given keyword fmt and replace every dash with a
@@ -124,15 +134,17 @@
         fmt (or (keyword (:format options)) :tar)
         output-dir (or (:output-dir options) (:target-path project))
         tar-name (tar-name project args)
+        ;; jar/jar is an implicit project clean, so do this early
+        jar (generate-jar project)
         tar-file (io/file output-dir
                           (format "%s.%s" tar-name (file-suffix fmt)))]
     (.delete tar-file)
     (.mkdirs (.getParentFile tar-file))
     (with-open [tar (TarOutputStream. (out-stream fmt tar-file))]
       (.setLongFileMode tar TarOutputStream/LONGFILE_GNU)
+      ;; and add everything from pkg
       (doseq [p (file-seq (io/file (:root project) "pkg"))]
         (add-file tar-name tar p))
-      (if (:uberjar options)
-        (add-uberjar project tar-name tar)
-        (add-jars project tar-name tar))
+      ;; and whatever jars should be included
+      (add-jars project tar tar-name jar)
       (println "Wrote" (.getName tar-file)))))
