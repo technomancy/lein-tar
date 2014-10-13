@@ -9,6 +9,10 @@
            (java.util.zip GZIPOutputStream)
            (org.apache.tools.tar TarEntry TarOutputStream)))
 
+(def cwd (System/getProperty "user.dir"))
+
+(def home (System/getProperty "user.home"))
+
 (defn unix-path
   "Converts a File or String into a unix-like path"
   [f]
@@ -20,10 +24,10 @@
 (defn entry-name [path f]
   (let [f (unix-path f)
         ;; strip files inside the project to the just logical components
-        prefix (unix-path (str (System/getProperty "user.dir") "/(pkg|target)?/?"))
+        prefix (unix-path (str cwd "/(pkg|target)?/?"))
         f (.replaceAll f prefix "")
         ;; strips files from m2 to just the filename
-        m2 (unix-path (str (System/getProperty "user.home") "/.m2"))
+        m2 (unix-path (str home "/.m2"))
         f (if (.startsWith f m2)
             (str (last (.split f "/")))
             f)]
@@ -47,7 +51,7 @@
 (defn- add-directory [tar path]
   ;; minor hack, we use the cwd as the model for any plain directories
   ;; that we're adding
-  (let [entry (doto (TarEntry. (io/file (System/getProperty "user.dir")))
+  (let [entry (doto (TarEntry. (io/file cwd))
                 (.setName path))]
     (.putNextEntry tar entry)
     (.closeEntry tar)))
