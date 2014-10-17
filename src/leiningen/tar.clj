@@ -161,4 +161,4 @@
         (add-file tar tar-path p))
       ;; and whatever jars should be included
       (add-jars project tar tar-path jar)
-      (println "Wrote" (.getName tar-file)))))
+      (println "Wrote" (.getCanonicalPath tar-file)))))
