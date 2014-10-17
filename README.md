@@ -7,7 +7,6 @@ Package your project up as a tarball!
 
 Formerly known as lein-release.
 
-
 ## Installation
 
 ### With Leiningen 2
@@ -18,40 +17,54 @@ Add [lein-tar "3.2.0"] to your project's `:plugins`.
 
 Add [lein-tar "1.1.2"] to your project's `:dev-dependencies`.
 
-
 ## Usage
 
     $ lein tar
 
-Creates myproject-1.0.0.tar including everything in `pkg/` along with
-the default dependencies plus the jar of your project. If you are
-building from Hudson, your tarball will contain a build.clj file that
-shows which build produced it.
+Creates myproject-1.0.0.tar including your project's jar, its
+dependencies, and everything in `pkg/`. A build.clj file may also be
+added, containing git and/or jenkins details about the build that
+generated your tar.
 
-## Uberjar
+## Advanced Usage
 
-Add `:tar {:uberjar true}` to your project.clj.
+The out of the box behavior is customizable via options in project.clj
+and also via the command line.
 
-## Output format
+### Options in project.clj
 
-Use option `:format` to specify the desired output format: either a `tar` (default) or a `tgz`/`tar-gz` (tar + gzip). Example: `:tar {:format :tgz}`.
+lein-tar checks project.clj for a :tar entry, and looks there for a
+map like the following. Of course, the entire map and all its keys are
+optional, none of this is required.
 
-## Custom name
+    :tar {:uberjar true
+          :format :tar-gz
+          :output-dir "foobar"
+          :leading-path "bazquux"}
 
-By default the file name will be something like myproject-1.0.0.tar
-(or whatever extension `:format` uses).  To change that, the `-n` or
-`--name` argument is supported.  The following will create a tar file
-called `custom-name.tar`:
+  - `:uberjar` allows you to specify whether you'd prefer to have your
+    project's uberjar in the tar, rather than the project jar and
+    dependency jars, the default is false
+  - `:format` allows you to build a .tar.gz (`:tar-gz`) or .tgz
+    (`:tgz`) file, if you wish, as opposed to just a .tar (the default)
+  - `:output-dir` determines where the tar will be generated, by
+    default it's the project's target directory (that is, the
+    `:target-path` of the project)
+  - `:leading-path` specifies the first path component of the files in
+    the tar, by default it's "{project-name}-{project-version}", but
+    you can override it here
 
-    $ lein tar --name custom-name
+### Command line options
 
-## Breaking changes since version 2.0.0
+lein-tar also accepts option command line arguments.
 
-Starting with version 3.0.0, we introduced the following breaking changes:
+  - `--name`/`-n` by default, the generated file name will be
+    something like myproject-1.0.0.tar (or whatever extension
+    `:format` uses). To change that, the `-n` or `--name` argument is
+    supported. The following will create a tar file called
+    `custom-name.tar`:
 
-* The plugin adds the `.jar` files to the resulting archive under `lib/` instead of `lib/target`
-* By default, the plugin now generates the resulting archive in the projects' target directory (that is, the `:target-path` of the project), instead of the project's root. You can change this with the new option `:output-dir`.
-
+        $ lein tar --name custom-name
 
 ## Known Issues
 
