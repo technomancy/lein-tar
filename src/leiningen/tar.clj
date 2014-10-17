@@ -68,11 +68,11 @@
 (defn build-info [project]
   (if-let [build-info (:build-info project)]
     build-info
-    (let [hudson (when (System/getenv "BUILD_ID")
-                   {:build-id (System/getenv "BUILD_ID")
-                    :build-tag (System/getenv "BUILD_TAG")})
+    (let [jenkins (when (System/getenv "BUILD_ID")
+                    {:build-id (System/getenv "BUILD_ID")
+                     :build-tag (System/getenv "BUILD_TAG")})
           git (git-commit (io/file (:root project) ".git"))]
-      (merge hudson git))))
+      (merge jenkins git))))
 
 (defn- add-build-info [project]
   (let [pkg (io/file (:root project) "pkg")
