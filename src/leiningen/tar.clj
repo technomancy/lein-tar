@@ -24,7 +24,7 @@
 (defn entry-name [path f]
   (let [f (unix-path f)
         ;; strip files inside the project to the just logical components
-        prefix (unix-path (str cwd "/(pkg|target)?/?"))
+        prefix (unix-path (str cwd "/(pkg|target/provided|target)?/?"))
         f (.replaceAll f prefix "")
         ;; strips files from m2 to just the filename
         m2 (unix-path (str home "/.m2"))
