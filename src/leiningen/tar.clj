@@ -9,6 +9,10 @@
            (java.util.zip GZIPOutputStream)
            (org.apache.tools.tar TarEntry TarOutputStream)))
 
+(def cwd (System/getProperty "user.dir"))
+
+(def home (System/getProperty "user.home"))
+
 (defn unix-path
   "Converts a File or String into a unix-like path"
   [f]
@@ -17,25 +21,39 @@
         f)
       (.replaceAll "\\\\" "/"))) ; WINDERS!!!!
 
-(defn entry-name [release-name f]
+(defn entry-name [path f]
   (let [f (unix-path f)
-        prefix (unix-path (str (System/getProperty "user.dir") "/(pkg|target)?/?"))
-        stripped (.replaceAll f prefix "")]
-    (str release-name "/"
-         (if (.startsWith f (unix-path (str (System/getProperty "user.home")
-                                            "/.m2")))
-           (str "lib/" (last (.split f "/")))
-           stripped))))
+        ;; strip files inside the project to the just logical components
+        prefix (unix-path (str cwd "/(pkg|target/provided|target)?/?"))
+        f (.replaceAll f prefix "")
+        ;; strips files from m2 to just the filename
+        m2 (unix-path (str home "/.m2"))
+        f (if (.startsWith f m2)
+            (str (last (.split f "/")))
+            f)]
+    (-> (str path "/" f)
+        ;; nuke leading slashes
+        (.replaceAll "^\\/" ""))))
 
-(defn- add-file [dir-name tar f]
-  (let [entry (doto (TarEntry. f)
-                (.setName (entry-name dir-name f)))]
-    (when (.canExecute f)
-      ;; No way to expose unix perms? you've got to be kidding me, java!
-      (.setMode entry 0755))
+(defn- add-file [tar path f]
+  (let [n (entry-name path f)
+        entry (doto (TarEntry. f)
+                (.setName n))]
+    (when-not (empty? n) ;; skip entries with no name
+      (when (.canExecute f)
+        ;; No way to expose unix perms? you've got to be kidding me, java!
+        (.setMode entry 0755))
+      (.putNextEntry tar entry)
+      (when-not (.isDirectory f)
+        (io/copy f tar))
+      (.closeEntry tar))))
+
+(defn- add-directory [tar path]
+  ;; minor hack, we use the cwd as the model for any plain directories
+  ;; that we're adding
+  (let [entry (doto (TarEntry. (io/file cwd))
+                (.setName path))]
     (.putNextEntry tar entry)
-    (when-not (.isDirectory f)
-      (io/copy f tar))
     (.closeEntry tar)))
 
 (defn- git-commit
@@ -50,11 +68,11 @@
 (defn build-info [project]
   (if-let [build-info (:build-info project)]
     build-info
-    (let [hudson (when (System/getenv "BUILD_ID")
-                   {:build-id (System/getenv "BUILD_ID")
-                    :build-tag (System/getenv "BUILD_TAG")})
+    (let [jenkins (when (System/getenv "BUILD_ID")
+                    {:build-id (System/getenv "BUILD_ID")
+                     :build-tag (System/getenv "BUILD_TAG")})
           git (git-commit (io/file (:root project) ".git"))]
-      (merge hudson git))))
+      (merge jenkins git))))
 
 (defn- add-build-info [project]
   (let [pkg (io/file (:root project) "pkg")
@@ -77,22 +95,27 @@
 (defn release-name [project]
   (str (:name project) "-" (:version project)))
 
-;; jar task changed in Leiningen 2.1 to return map of classifier/file
-(defn- jar-extension [files]
-  (second (first (filter #(= [:extension "jar"] (key %)) files))))
+(defn- find-jar [files]
+  (if (map? files)
+    ;; the jar task changed in Leiningen 2.1 to return map of
+    ;; classifier/file so find the jar in the map
+    (second (first (filter #(= [:extension "jar"] (key %)) files)))
+    ;; ah, files *is* the jar
+    files))
 
-(defn add-jars [project dir-name tar]
-  (let [j (jar/jar project)
-        jar-file (if (map? j) (jar-extension j) j)]
-    (add-file (str dir-name "/lib") tar (io/file jar-file))
-    (doseq [j (jars-for project)]
-      (add-file dir-name tar j))))
+(defn generate-jar [project]
+  (let [options (:tar project)]
+    (if (:uberjar options)
+      (uberjar/uberjar project)
+      (find-jar (jar/jar project)))))
 
-(defn add-uberjar [project dir-name tar]
-  (let [uberjar-file (uberjar/uberjar project)]
-    (doseq [:let [j (io/file uberjar-file)]
-            f [(.getParentFile j) j]]
-      (add-file (str dir-name "/lib") tar f))))
+(defn add-jars [project tar path jar]
+  (let [options (:tar project)]
+    (add-directory tar (str path "/lib"))
+    (add-file tar (str path "/lib") (io/file jar))
+    (if-not (:uberjar options)
+      (doseq [j (jars-for project)]
+        (add-file tar (str path "/lib") j)))))
 
 (defn- file-suffix
   "Take the name of given keyword fmt and replace every dash with a
@@ -124,15 +147,18 @@
         fmt (or (keyword (:format options)) :tar)
         output-dir (or (:output-dir options) (:target-path project))
         tar-name (tar-name project args)
+        tar-path (or (:leading-path options) tar-name)
+        ;; jar/jar is an implicit project clean, so do this early
+        jar (generate-jar project)
         tar-file (io/file output-dir
                           (format "%s.%s" tar-name (file-suffix fmt)))]
     (.delete tar-file)
     (.mkdirs (.getParentFile tar-file))
     (with-open [tar (TarOutputStream. (out-stream fmt tar-file))]
       (.setLongFileMode tar TarOutputStream/LONGFILE_GNU)
+      ;; and add everything from pkg
       (doseq [p (file-seq (io/file (:root project) "pkg"))]
-        (add-file tar-name tar p))
-      (if (:uberjar options)
-        (add-uberjar project tar-name tar)
-        (add-jars project tar-name tar))
-      (println "Wrote" (.getName tar-file)))))
+        (add-file tar tar-path p))
+      ;; and whatever jars should be included
+      (add-jars project tar tar-path jar)
+      (println "Wrote" (.getCanonicalPath tar-file)))))
