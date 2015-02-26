@@ -17,7 +17,7 @@
   "Converts a File or String into a unix-like path"
   [f]
   (-> (if (instance? java.io.File f)
-        (.getAbsolutePath f)
+        (.getCanonicalPath f)
         f)
       (.replaceAll "\\\\" "/"))) ; WINDERS!!!!
 
